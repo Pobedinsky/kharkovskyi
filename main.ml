@@ -16,12 +16,12 @@ let rec string_of_func = function
 | E          -> "e"
 | PI         -> "π"
 | X          -> "X"
-| Pow (f, g) -> "( "  ^ string_of_func f ^ " ) ^ ( "^ string_of_func g ^ " )"
-| Mult (f, g)-> "( "  ^ string_of_func f ^ " ) * ( "^ string_of_func g ^ " )"
-| Div (f, g) -> "( "  ^ string_of_func f ^ " ) / ( "^ string_of_func g ^ " )"
-| Sum (f, g) -> "( "  ^ string_of_func f ^ " ) + ( "^ string_of_func g ^ " )"
-| Sub (f, g) -> "( "  ^ string_of_func f ^ " ) - ( "^ string_of_func g ^ " )"
-| Log (f, g) -> "( Log ("  ^ string_of_func f ^ ") ( " ^ string_of_func g ^ " ))";;
+| Pow (f, g) -> "("  ^ string_of_func f ^ ")^("^ string_of_func g ^ ")"
+| Mult (f, g)-> "("  ^ string_of_func f ^ ")*("^ string_of_func g ^ ")"
+| Div (f, g) -> "("  ^ string_of_func f ^ ")/("^ string_of_func g ^ ")"
+| Sum (f, g) -> "("  ^ string_of_func f ^ ")+("^ string_of_func g ^ ")"
+| Sub (f, g) -> "("  ^ string_of_func f ^ ")-("^ string_of_func g ^ ")"
+| Log (f, g) -> "(Log ("  ^ string_of_func f ^ ") (" ^ string_of_func g ^ "))";;
 
 let rec derive = function
 | X               -> Var(1.)
@@ -41,7 +41,21 @@ let rec derive = function
 | Log (E, g)      -> Div( derive g, g )
 | _ -> failwith "Not done yet";;
 
+let rec simplify = function
+| Mult (f, g) when f = Var(1.) || g = Var(1.) -> if f = Var(1.) then simplify g else simplify f
+| Mult (f, g) when f = Var(0.) || g = Var(0.) -> Var(0.)
+| Sum (f, g) when f = Var(0.) || g = Var(0.) -> if f = Var(0.) then simplify g else simplify f
+| Pow (f, Var(1.)) -> simplify f
+| Pow (f, Var(0.)) -> Var(1.)
+| Mult (f, g) -> Mult(simplify f, simplify g)
+| Sum (f, g) -> Sum(simplify f, simplify g)
+| Div (f, Var(1.)) -> simplify f
+| Div (f, g) -> Div(simplify f, simplify g)
+| Pow (f, g) -> Pow(simplify f, simplify g)
+| Log (f, g) -> Log(f, simplify g)
+| k -> k;;
+
 
 let testing = Sum( Pow(X, Pow(X,Var(2.))), E)
 
-let () = testing |> derive |> string_of_func |> print_string
+let () = testing |> derive |> simplify |> string_of_func |> print_string;;
